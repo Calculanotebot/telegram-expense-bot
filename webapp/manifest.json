@@ -1,0 +1,11 @@
+{
+  "name": "Блокнот-калькулятор расходов",
+  "short_name": "Блокнот",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EEF0E6",
+  "theme_color": "#1F6F5C",
+  "lang": "ru",
+  "icons": []
+}

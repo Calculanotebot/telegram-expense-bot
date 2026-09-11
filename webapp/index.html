@@ -1,0 +1,679 @@
+<meta charset="UTF-8">
+<title>Блокнот-калькулятор</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1F6F5C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Блокнот">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --paper:#EEF0E6;
+    --paper-raised:#FFFFFF;
+    --paper-inset:#0F1B15;
+    --ink:#1B2A20;
+    --ink-soft:#5B6656;
+    --ink-faint:#94A08C;
+    --accent:#1F6F5C;
+    --accent-strong:#144A3D;
+    --accent-ink:#EAF4EF;
+    --display-digit:#F2A93C;
+    --danger:#B23B2E;
+    --danger-ink:#FBEAE7;
+    --border:#D8DACB;
+    --border-strong:#C3C6B2;
+    --radius:14px;
+    --font-display:'Fraunces',Georgia,'Times New Roman',serif;
+    --font-sans:'IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;
+    --font-mono:'IBM Plex Mono','SF Mono',Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#121C16;
+      --paper-raised:#182620;
+      --paper-inset:#0A1210;
+      --ink:#E7EEE4;
+      --ink-soft:#9FAF95;
+      --ink-faint:#5E6C58;
+      --accent:#4FBE9C;
+      --accent-strong:#3AA482;
+      --accent-ink:#062017;
+      --display-digit:#F5B95A;
+      --danger:#E17868;
+      --danger-ink:#3A1613;
+      --border:#28372E;
+      --border-strong:#3A4B3F;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#121C16;
+    --paper-raised:#182620;
+    --paper-inset:#0A1210;
+    --ink:#E7EEE4;
+    --ink-soft:#9FAF95;
+    --ink-faint:#5E6C58;
+    --accent:#4FBE9C;
+    --accent-strong:#3AA482;
+    --accent-ink:#062017;
+    --display-digit:#F5B95A;
+    --danger:#E17868;
+    --danger-ink:#3A1613;
+    --border:#28372E;
+    --border-strong:#3A4B3F;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--font-sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{
+    max-width:480px;
+    margin:0 auto;
+    padding:1.25rem 1rem 2rem;
+    display:flex;
+    flex-direction:column;
+    gap:1rem;
+  }
+  .topbar{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:.75rem;
+  }
+  .brand h1{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:1.5rem;
+    margin:0 0 .15rem;
+    text-wrap:balance;
+    letter-spacing:.01em;
+  }
+  .brand p{
+    margin:0;
+    font-size:.8rem;
+    color:var(--ink-soft);
+  }
+  .conn{
+    display:flex;
+    align-items:center;
+    gap:.4rem;
+    font-size:.72rem;
+    color:var(--ink-soft);
+    white-space:nowrap;
+    padding-top:.3rem;
+  }
+  .conn .dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--ink-faint);
+    flex:none;
+  }
+  .conn.online .dot{background:var(--accent);}
+
+  .display{
+    background:var(--paper-inset);
+    border-radius:var(--radius);
+    padding:1rem 1.15rem 1.05rem;
+  }
+  .display-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+  }
+  .display-label{
+    font-size:.68rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:#8FA79A;
+  }
+  .display-count{
+    font-family:var(--font-mono);
+    font-size:.75rem;
+    color:#8FA79A;
+  }
+  .display-total{
+    font-family:var(--font-mono);
+    font-weight:600;
+    font-size:2.4rem;
+    line-height:1.15;
+    color:var(--display-digit);
+    font-variant-numeric:tabular-nums;
+    text-align:right;
+    margin-top:.15rem;
+  }
+
+  .entry-form{
+    display:flex;
+    gap:.5rem;
+  }
+  .entry-form input{
+    flex:1;
+    min-width:0;
+    height:52px;
+    padding:0 1rem;
+    border-radius:var(--radius);
+    border:1px solid var(--border-strong);
+    background:var(--paper-raised);
+    color:var(--ink);
+    font-family:var(--font-mono);
+    font-size:1.05rem;
+  }
+  .entry-form input:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+  .entry-form input::placeholder{ color:var(--ink-faint); }
+  .key-add{
+    flex:none;
+    width:52px;height:52px;
+    border-radius:var(--radius);
+    border:1px solid var(--accent-strong);
+    background:var(--accent);
+    color:var(--accent-ink);
+    font-size:1.6rem;
+    line-height:1;
+    cursor:pointer;
+  }
+  .key-add:active{ transform:scale(.96); }
+
+  .preview{
+    margin-top:-.4rem;
+    padding:0 .2rem;
+    font-family:var(--font-mono);
+    font-size:.82rem;
+    color:var(--ink-soft);
+  }
+  .preview b{ color:var(--ink); font-weight:600; }
+  .preview.error{ color:var(--danger); }
+
+  .ledger{
+    display:flex;
+    flex-direction:column;
+  }
+  .ledger-empty{
+    text-align:center;
+    padding:2.25rem 1rem;
+    color:var(--ink-soft);
+    font-size:.9rem;
+    border:1px dashed var(--border-strong);
+    border-radius:var(--radius);
+  }
+  .day-group{ margin-bottom:.25rem; }
+  .day-label{
+    font-size:.68rem;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    padding:.9rem .2rem .35rem;
+  }
+  .row{
+    display:flex;
+    align-items:center;
+    gap:.6rem;
+    padding:.6rem .2rem;
+    border-bottom:1px dashed var(--border);
+  }
+  .row:last-child{ border-bottom:none; }
+  .row-main{ flex:1; min-width:0; }
+  .row-cat{
+    font-size:.92rem;
+    color:var(--ink);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .row-time{ font-size:.72rem; color:var(--ink-faint); }
+  .row-amount{
+    font-family:var(--font-mono);
+    font-weight:500;
+    font-size:1rem;
+    font-variant-numeric:tabular-nums;
+  }
+  .row-amount.pending{ color:var(--ink); }
+  .row-amount.synced{ color:var(--ink-faint); }
+  .row-badge{
+    font-size:.62rem;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:var(--accent-strong);
+    background:color-mix(in srgb, var(--accent) 16%, transparent);
+    padding:.15rem .4rem;
+    border-radius:5px;
+    flex:none;
+  }
+  .row-del{
+    flex:none;
+    width:30px;height:30px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:transparent;
+    color:var(--ink-faint);
+    font-size:.9rem;
+    cursor:pointer;
+  }
+  .row-del:hover{ color:var(--danger); border-color:var(--danger); }
+
+  .actionbar{
+    display:flex;
+    flex-direction:column;
+    gap:.5rem;
+    position:sticky;
+    bottom:0;
+    padding-top:.5rem;
+    background:linear-gradient(var(--paper) 40%, var(--paper));
+  }
+  .btn-primary, .btn-ghost{
+    height:48px;
+    border-radius:var(--radius);
+    font-family:var(--font-sans);
+    font-weight:500;
+    font-size:.92rem;
+    cursor:pointer;
+  }
+  .btn-primary{
+    border:1px solid var(--accent-strong);
+    background:var(--accent);
+    color:var(--accent-ink);
+  }
+  .btn-primary:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+  }
+  .btn-ghost{
+    border:1px solid var(--border-strong);
+    background:transparent;
+    color:var(--ink-soft);
+  }
+
+  .modal-backdrop{
+    position:fixed; inset:0;
+    background:rgba(10,15,12,.55);
+    display:flex; align-items:flex-end; justify-content:center;
+    z-index:10;
+  }
+  .modal-backdrop[hidden]{ display:none; }
+  .modal{
+    width:100%; max-width:480px;
+    background:var(--paper-raised);
+    border-radius:16px 16px 0 0;
+    padding:1.25rem 1.25rem 1.5rem;
+  }
+  .modal p{
+    margin:0 0 1rem;
+    font-size:.95rem;
+    line-height:1.5;
+  }
+  .modal-actions{
+    display:flex;
+    gap:.5rem;
+  }
+  .modal-actions button{ flex:1; }
+
+  .toast{
+    position:fixed;
+    left:1rem; right:1rem; bottom:1rem;
+    max-width:448px;
+    margin:0 auto;
+    background:var(--ink);
+    color:var(--paper);
+    padding:.75rem 1rem;
+    border-radius:10px;
+    font-size:.85rem;
+    text-align:center;
+    z-index:20;
+  }
+  .toast[hidden]{ display:none; }
+
+  @media (prefers-reduced-motion: no-preference){
+    .key-add{ transition:transform .1s ease; }
+  }
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <h1>Блокнот-калькулятор</h1>
+      <p>офлайн-блокнот · синк с @calculanotebot</p>
+    </div>
+    <div class="conn" id="connStatus"><span class="dot"></span><span id="connLabel">офлайн</span></div>
+  </header>
+
+  <section class="display">
+    <div class="display-row">
+      <span class="display-label">не синхронизировано</span>
+      <span class="display-count" id="pendingCount">0 записей</span>
+    </div>
+    <div class="display-total" id="pendingTotal">0</div>
+  </section>
+
+  <form class="entry-form" id="entryForm" autocomplete="off">
+    <input id="entryInput" type="text" placeholder="250 кофе" aria-label="Сумма и комментарий" autocomplete="off">
+    <button type="submit" class="key-add" aria-label="Добавить запись">+</button>
+  </form>
+  <div class="preview" id="preview" hidden></div>
+
+  <section class="ledger" id="ledger"></section>
+
+  <footer class="actionbar">
+    <button class="btn-ghost" id="clearSyncedBtn" type="button">Убрать синхронизированные из списка</button>
+    <button class="btn-primary" id="syncBtn" type="button">Синхронизировать в Telegram</button>
+  </footer>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop" hidden>
+  <div class="modal">
+    <p id="modalText">Открыл Telegram с заготовленным сообщением — там нужно нажать «отправить». Отметить эти записи как синхронизированные?</p>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="modalCancel" type="button">Ещё нет</button>
+      <button class="btn-primary" id="modalConfirm" type="button">Отправил(а)</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var BOT_USERNAME = "calculanotebot";
+  var STORAGE_KEY = "expense_notebook_entries_v1";
+
+  // ---- парсер, зеркалит логику Python-бота (bot.py: parse_message) ----
+  function evalExpr(str){
+    var i = 0;
+    str = str.replace(/,/g, ".");
+    function skipSpace(){ while(i<str.length && (str[i]===" "||str[i]==="\t")) i++; }
+    function parseNumber(){
+      skipSpace();
+      var start = i;
+      while(i<str.length && /[0-9.]/.test(str[i])) i++;
+      if(start===i) throw new Error("expected number");
+      var v = parseFloat(str.slice(start,i));
+      if(isNaN(v)) throw new Error("bad number");
+      return v;
+    }
+    function parseFactor(){
+      skipSpace();
+      if(str[i]==="("){ i++; var v=parseExprInner(); skipSpace(); if(str[i]!==")") throw new Error("expected )"); i++; return v; }
+      if(str[i]==="-"){ i++; return -parseFactor(); }
+      if(str[i]==="+"){ i++; return parseFactor(); }
+      return parseNumber();
+    }
+    function parseTerm(){
+      var v = parseFactor();
+      skipSpace();
+      while(str[i]==="*"||str[i]==="/"){
+        var op=str[i]; i++;
+        var rhs=parseFactor();
+        v = op==="*" ? v*rhs : v/rhs;
+        skipSpace();
+      }
+      return v;
+    }
+    function parseExprInner(){
+      var v = parseTerm();
+      skipSpace();
+      while(str[i]==="+"||str[i]==="-"){
+        var op=str[i]; i++;
+        var rhs=parseTerm();
+        v = op==="+" ? v+rhs : v-rhs;
+        skipSpace();
+      }
+      return v;
+    }
+    var result = parseExprInner();
+    skipSpace();
+    if(i !== str.length) throw new Error("unexpected trailing characters");
+    return result;
+  }
+
+  function splitAmountAndComment(text){
+    var allowed = /[0-9+\-*/(). \t,]/;
+    var i = 0;
+    while(i<text.length && allowed.test(text[i])) i++;
+    return [text.slice(0,i).trim(), text.slice(i).trim()];
+  }
+
+  function parseMessage(text){
+    var parts = splitAmountAndComment(text.trim());
+    var exprPart = parts[0], comment = parts[1];
+    if(!exprPart || !/[0-9]/.test(exprPart)){
+      throw new Error("Не нашёл сумму в начале. Пример: 250 кофе");
+    }
+    var amount;
+    try{ amount = evalExpr(exprPart); }
+    catch(e){ throw new Error("Не смог посчитать «" + exprPart + "»"); }
+    var category = comment || "Без категории";
+    return {amount:amount, category:category};
+  }
+
+  function fmtAmount(a){
+    if(Math.abs(a - Math.round(a)) < 1e-9) return String(Math.round(a));
+    return (Math.round(a*100)/100).toString();
+  }
+
+  // ---- хранилище ----
+  function loadEntries(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+  function saveEntries(entries){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }catch(e){}
+  }
+  var entries = loadEntries();
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  // ---- рендер ----
+  var els = {
+    input: document.getElementById("entryInput"),
+    form: document.getElementById("entryForm"),
+    preview: document.getElementById("preview"),
+    ledger: document.getElementById("ledger"),
+    pendingCount: document.getElementById("pendingCount"),
+    pendingTotal: document.getElementById("pendingTotal"),
+    syncBtn: document.getElementById("syncBtn"),
+    clearSyncedBtn: document.getElementById("clearSyncedBtn"),
+    conn: document.getElementById("connStatus"),
+    connLabel: document.getElementById("connLabel"),
+    modal: document.getElementById("modalBackdrop"),
+    modalConfirm: document.getElementById("modalConfirm"),
+    modalCancel: document.getElementById("modalCancel"),
+    toast: document.getElementById("toast")
+  };
+
+  var toastTimer = null;
+  function showToast(msg){
+    els.toast.textContent = msg;
+    els.toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ els.toast.hidden = true; }, 2600);
+  }
+
+  function dayLabel(ts){
+    var d = new Date(ts);
+    var today = new Date();
+    var yest = new Date(); yest.setDate(today.getDate()-1);
+    var sameDay = function(a,b){ return a.toDateString()===b.toDateString(); };
+    if(sameDay(d, today)) return "сегодня";
+    if(sameDay(d, yest)) return "вчера";
+    return d.toLocaleDateString("ru-RU", {day:"numeric", month:"long"});
+  }
+  function timeLabel(ts){
+    return new Date(ts).toLocaleTimeString("ru-RU", {hour:"2-digit", minute:"2-digit"});
+  }
+
+  function render(){
+    var pending = entries.filter(function(e){ return !e.synced; });
+    var total = pending.reduce(function(s,e){ return s + e.amount; }, 0);
+    els.pendingCount.textContent = pending.length + (pending.length===1 ? " запись" : " записей");
+    els.pendingTotal.textContent = fmtAmount(total);
+    els.syncBtn.disabled = pending.length === 0;
+
+    els.ledger.innerHTML = "";
+    if(entries.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "ledger-empty";
+      empty.textContent = "Записей ещё нет. Впиши сумму выше — например «250 кофе» — и нажми «+».";
+      els.ledger.appendChild(empty);
+      return;
+    }
+
+    var sorted = entries.slice().sort(function(a,b){ return b.ts - a.ts; });
+    var lastDay = null;
+    sorted.forEach(function(e){
+      var dl = dayLabel(e.ts);
+      if(dl !== lastDay){
+        lastDay = dl;
+        var label = document.createElement("div");
+        label.className = "day-label";
+        label.textContent = dl;
+        els.ledger.appendChild(label);
+      }
+      var row = document.createElement("div");
+      row.className = "row";
+
+      var main = document.createElement("div");
+      main.className = "row-main";
+      var cat = document.createElement("div");
+      cat.className = "row-cat";
+      cat.textContent = e.category;
+      var time = document.createElement("div");
+      time.className = "row-time";
+      time.textContent = timeLabel(e.ts);
+      main.appendChild(cat); main.appendChild(time);
+
+      var amount = document.createElement("div");
+      amount.className = "row-amount " + (e.synced ? "synced" : "pending");
+      amount.textContent = fmtAmount(e.amount);
+
+      row.appendChild(main);
+      if(e.synced){
+        var badge = document.createElement("span");
+        badge.className = "row-badge";
+        badge.textContent = "синхр.";
+        row.appendChild(badge);
+      }
+      row.appendChild(amount);
+
+      var del = document.createElement("button");
+      del.type = "button";
+      del.className = "row-del";
+      del.setAttribute("aria-label", "Удалить запись");
+      del.textContent = "✕";
+      del.addEventListener("click", function(){
+        entries = entries.filter(function(x){ return x.id !== e.id; });
+        saveEntries(entries);
+        render();
+      });
+      row.appendChild(del);
+
+      els.ledger.appendChild(row);
+    });
+  }
+
+  // ---- ввод ----
+  els.input.addEventListener("input", function(){
+    var val = els.input.value;
+    if(!val.trim()){ els.preview.hidden = true; return; }
+    try{
+      var r = parseMessage(val);
+      els.preview.hidden = false;
+      els.preview.className = "preview";
+      els.preview.innerHTML = "= <b>" + fmtAmount(r.amount) + "</b> · " + r.category;
+    }catch(e){
+      els.preview.hidden = false;
+      els.preview.className = "preview error";
+      els.preview.textContent = e.message;
+    }
+  });
+
+  els.form.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var val = els.input.value;
+    if(!val.trim()) return;
+    var r;
+    try{ r = parseMessage(val); }
+    catch(e){
+      els.preview.hidden = false;
+      els.preview.className = "preview error";
+      els.preview.textContent = e.message;
+      return;
+    }
+    entries.push({
+      id: uid(),
+      amount: r.amount,
+      category: r.category,
+      raw: val.trim(),
+      ts: Date.now(),
+      synced: false
+    });
+    saveEntries(entries);
+    els.input.value = "";
+    els.preview.hidden = true;
+    render();
+  });
+
+  // ---- синхронизация ----
+  var pendingSyncIds = [];
+  els.syncBtn.addEventListener("click", function(){
+    var pending = entries.filter(function(e){ return !e.synced; });
+    if(pending.length === 0) return;
+    var text = pending.slice().sort(function(a,b){ return a.ts-b.ts; })
+      .map(function(e){ return e.raw; }).join("\n");
+    pendingSyncIds = pending.map(function(e){ return e.id; });
+    var url = "https://t.me/" + BOT_USERNAME + "?text=" + encodeURIComponent(text);
+    window.open(url, "_blank");
+    els.modal.hidden = false;
+  });
+
+  els.modalConfirm.addEventListener("click", function(){
+    entries.forEach(function(e){
+      if(pendingSyncIds.indexOf(e.id) !== -1) e.synced = true;
+    });
+    saveEntries(entries);
+    pendingSyncIds = [];
+    els.modal.hidden = true;
+    render();
+    showToast("Отмечено как синхронизировано");
+  });
+  els.modalCancel.addEventListener("click", function(){
+    pendingSyncIds = [];
+    els.modal.hidden = true;
+  });
+
+  els.clearSyncedBtn.addEventListener("click", function(){
+    var before = entries.length;
+    entries = entries.filter(function(e){ return !e.synced; });
+    saveEntries(entries);
+    render();
+    if(entries.length !== before) showToast("Синхронизированные записи убраны из списка");
+  });
+
+  // ---- статус сети ----
+  function updateConn(){
+    var online = navigator.onLine;
+    els.conn.classList.toggle("online", online);
+    els.connLabel.textContent = online ? "сеть есть" : "офлайн";
+  }
+  window.addEventListener("online", updateConn);
+  window.addEventListener("offline", updateConn);
+  updateConn();
+
+  render();
+
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+})();
+</script>

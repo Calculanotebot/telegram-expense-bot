@@ -250,6 +250,9 @@ HELP_TEXT = (
     "  100+50+30 продукты\n"
     "  125.50 такси домой\n"
     "  -100 возврат   (минус — если нужно вычесть)\n\n"
+    "Можно прислать сразу несколько строк одним сообщением — "
+    "каждая строка запишется отдельной тратой (удобно для синхронизации "
+    "офлайн-блокнота).\n\n"
     "Команды:\n"
     "/today — расходы за сегодня\n"
     "/week — расходы за 7 дней\n"
@@ -390,17 +393,40 @@ async def cmd_clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает сообщение. Поддерживает несколько строк за раз —
+    так офлайн-блокнот на телефоне может прислать накопленные записи
+    одним сообщением при синхронизации."""
     user_id = update.effective_user.id
     text = update.message.text or ""
-    try:
-        amount, category = parse_message(text)
-    except ValueError as e:
-        await update.message.reply_text(str(e))
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+
+    if len(lines) <= 1:
+        try:
+            amount, category = parse_message(text)
+        except ValueError as e:
+            await update.message.reply_text(str(e))
+            return
+        expense_id = add_expense(user_id, amount, category, text)
+        await update.message.reply_text(
+            f"Записал #{expense_id}: {fmt_amount(amount)} · {category}"
+        )
         return
-    expense_id = add_expense(user_id, amount, category, text)
-    await update.message.reply_text(
-        f"Записал #{expense_id}: {fmt_amount(amount)} · {category}"
-    )
+
+    added = []
+    failed = []
+    for line in lines:
+        try:
+            amount, category = parse_message(line)
+        except ValueError:
+            failed.append(line)
+            continue
+        expense_id = add_expense(user_id, amount, category, line)
+        added.append(f"#{expense_id} · {fmt_amount(amount)} · {category}")
+
+    reply = f"Синхронизировано записей: {len(added)}\n" + "\n".join(added)
+    if failed:
+        reply += "\n\nНе распознал:\n" + "\n".join(failed)
+    await update.message.reply_text(reply)
 
 
 def main():
