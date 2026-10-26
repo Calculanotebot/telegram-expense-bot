@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ORBITA Wear</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Chakra+Petch:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: орбитальная витрина — герой с луной справа, сетка товаров на «стыковочной платформе», корзина выезжает справа */
+:root {
+  color-scheme: dark;
+  --void: #05040f;          /* космос */
+  --panel: #0d0b22cc;       /* стекло панели */
+  --line: #2a2650;          /* тонкие линии */
+  --text: #e9e7ff;
+  --muted: #9c98c9;
+  --cyan: #22f0ff;
+  --magenta: #ff3df2;
+  --violet: #8b5cff;
+  --flame: #ffb547;
+  --font-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --font-body: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --gutter-l: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+}
+* { box-sizing: border-box; }
+html, body { background: var(--void); }
+body {
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+#stars { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.sky { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.sky::before {
+  content: ""; position: absolute; inset: 0;
+  background:
+    radial-gradient(60% 50% at 85% 10%, #8b5cff2e, transparent 70%),
+    radial-gradient(50% 40% at 10% 90%, #ff3df21f, transparent 70%);
+}
+.moon {
+  position: absolute; top: -6vmin; right: -8vmin;
+  width: min(58vmin, 520px); aspect-ratio: 1; border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 35%, #00000038 0 9%, #0000 calc(9% + .5%)),
+    radial-gradient(circle at 62% 24%, #00000030 0 6.5%, #0000 calc(6.5% + .5%)),
+    radial-gradient(circle at 55% 62%, #0000002e 0 12.5%, #0000 calc(12.5% + .5%)),
+    radial-gradient(circle at 24% 70%, #00000038 0 5%, #0000 calc(5% + .5%)),
+    radial-gradient(circle at 78% 48%, #00000030 0 4.5%, #0000 calc(4.5% + .5%)),
+    radial-gradient(circle at 38% 30%, #f4f1ff 0%, #c9c4e8 35%, #6e6899 70%, #2a2550 100%);
+  box-shadow: 0 0 60px #b9a8ff55, 0 0 160px #8b5cff40, inset -40px -30px 80px #120e30cc;
+  opacity: .9;
+  animation: moonGlow 8s ease-in-out infinite;
+}
+@keyframes moonGlow { 50% { box-shadow: 0 0 80px #b9a8ff77, 0 0 220px #8b5cff55, inset -40px -30px 80px #120e30cc; } }
+.rocket { position: absolute; width: 46px; filter: drop-shadow(0 0 8px var(--cyan)); offset-rotate: auto 90deg; }
+.rocket.r1 { offset-path: path("M -60 900 C 400 700, 700 300, 1700 -120"); animation: fly 18s linear infinite; }
+.rocket.r2 { width: 30px; offset-path: path("M 1600 760 C 1100 600, 600 500, -100 80"); animation: fly 26s linear infinite 6s; filter: drop-shadow(0 0 8px var(--magenta)); }
+@keyframes fly { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+.flame { transform-origin: 50% 0; animation: flicker .12s ease-in-out infinite alternate; }
+@keyframes flicker { to { transform: scaleY(1.35); opacity: .75; } }
+
+.wrap { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding-left: var(--gutter-l); padding-right: var(--gutter-r); }
+
+/* header */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: #05040fe6; }
+header.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: #05040fb8; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.top .wrap { display: flex; align-items: center; gap: 20px; padding-block: 14px; flex-wrap: wrap; }
+.logo { font-family: var(--font-display); font-weight: 800; font-size: 22px; letter-spacing: .12em; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 10px; }
+.logo span { color: var(--cyan); text-shadow: 0 0 10px var(--cyan); }
+.logo svg { filter: drop-shadow(0 0 6px var(--magenta)); }
+nav.menu { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.search { position: relative; flex: 0 1 240px; min-width: 0; }
+.search input {
+  width: 100%; background: #0d0b22; border: 1px solid var(--line); color: var(--text);
+  font: 500 14px var(--font-body); padding: 9px 12px 9px 34px; border-radius: 999px; outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.search input:focus { border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan), 0 0 16px #22f0ff55; }
+.search svg { position: absolute; left: 12px; top: 50%; translate: 0 -50%; color: var(--muted); }
+
+/* neon buttons */
+.neon {
+  --c: var(--cyan);
+  appearance: none; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font: 600 14px var(--font-body); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--c); background: #05040f80;
+  border: 1.5px solid var(--c); border-radius: 10px; padding: 10px 18px;
+  text-shadow: 0 0 6px var(--c);
+  box-shadow: 0 0 6px var(--c), 0 0 18px color-mix(in srgb, var(--c) 45%, transparent), inset 0 0 10px color-mix(in srgb, var(--c) 35%, transparent);
+  transition: background .2s, color .2s, box-shadow .2s, transform .15s;
+}
+.neon:hover, .neon[aria-pressed="true"] {
+  background: var(--c); color: var(--void); text-shadow: none;
+  box-shadow: 0 0 10px var(--c), 0 0 36px var(--c), 0 0 70px color-mix(in srgb, var(--c) 55%, transparent);
+}
+.neon:active { transform: scale(.97); }
+.neon:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.neon.pink { --c: var(--magenta); }
+.neon.violet { --c: var(--violet); }
+.neon.flame { --c: var(--flame); }
+.neon.sm { padding: 7px 12px; font-size: 12px; border-radius: 8px; }
+.neon.lg { padding: 15px 28px; font-size: 15px; border-radius: 12px; }
+.neon.round { width: 34px; height: 34px; padding: 0; border-radius: 50%; font-size: 16px; }
+.cart-btn { position: relative; }
+.cart-count {
+  position: absolute; top: -8px; right: -8px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
+  background: var(--magenta); color: var(--void); font: 600 11px/20px var(--font-mono); text-shadow: none;
+  box-shadow: 0 0 10px var(--magenta);
+}
+
+/* hero */
+.hero { padding-block: 72px 56px; display: grid; gap: 28px; }
+.hero > * { max-width: 760px; }
+.eyebrow { font: 600 12px var(--font-mono); letter-spacing: .24em; text-transform: uppercase; color: var(--cyan); text-shadow: 0 0 8px #22f0ff99; }
+h1 {
+  font-family: var(--font-display); font-weight: 800; margin: 0;
+  font-size: clamp(38px, 7vw, 84px); line-height: 1.02; letter-spacing: -.01em; text-wrap: balance;
+}
+h1 em { font-style: normal; background: linear-gradient(90deg, var(--magenta), var(--violet) 55%, var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 14px #ff3df266); }
+.hero p { margin: 0; color: var(--muted); font-size: 18px; max-width: 52ch; }
+.hero .actions { display: flex; gap: 14px; flex-wrap: wrap; }
+.telemetry { display: flex; gap: 28px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.telemetry b { display: block; color: var(--text); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.countdown b { color: var(--flame); text-shadow: 0 0 10px #ffb54799; }
+
+/* catalog */
+.bar { display: flex; align-items: end; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-block: 8px 20px; border-top: 1px solid var(--line); }
+h2 { font-family: var(--font-display); font-weight: 600; font-size: 26px; margin: 18px 0 0; letter-spacing: .02em; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 22px; padding-bottom: 64px; }
+.card {
+  position: relative; display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 18px; overflow: hidden;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  transition: border-color .25s, transform .25s, box-shadow .25s;
+}
+.card:hover { border-color: color-mix(in srgb, var(--accent) 70%, transparent); transform: translateY(-4px); box-shadow: 0 0 30px color-mix(in srgb, var(--accent) 25%, transparent); }
+.stage {
+  position: relative; aspect-ratio: 1 / .9; max-width: 100%; display: grid; place-items: center;
+  background:
+    radial-gradient(60% 50% at 50% 55%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+    linear-gradient(transparent 70%, #00000066);
+}
+.stage::after { /* сетка «стыковочной платформы» */
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 34%;
+  background:
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--accent) 30%, transparent) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--accent) 30%, transparent) 0 1px, transparent 1px 18px);
+  transform: perspective(240px) rotateX(55deg); transform-origin: bottom; opacity: .5;
+  mask-image: linear-gradient(transparent, #000);
+  -webkit-mask-image: linear-gradient(transparent, #000);
+}
+.stage svg { position: relative; z-index: 1; width: 62%; filter: drop-shadow(0 0 10px var(--accent)); animation: hover 5s ease-in-out infinite; }
+.card:nth-child(2n) .stage svg { animation-delay: -2.5s; }
+@keyframes hover { 50% { transform: translateY(-8px); } }
+.badge {
+  position: absolute; top: 14px; left: 14px; z-index: 2;
+  font: 600 11px var(--font-mono); letter-spacing: .12em; padding: 4px 8px; border-radius: 6px;
+  color: var(--void); background: var(--accent); box-shadow: 0 0 12px var(--accent);
+}
+.info { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 16px 18px 18px; }
+.info .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.name { font-family: var(--font-display); font-size: 15px; font-weight: 600; margin: 0; }
+.spec { font: 400 12px var(--font-mono); color: var(--muted); margin: 0; }
+.price { font: 600 17px var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.price s { color: var(--muted); font-weight: 400; font-size: 12px; margin-right: 6px; }
+.sizes { display: flex; gap: 6px; flex-wrap: wrap; }
+.size {
+  font: 600 12px var(--font-mono); min-width: 38px; padding: 6px 8px; border-radius: 7px; cursor: pointer;
+  background: transparent; color: var(--muted); border: 1px solid var(--line); transition: all .15s;
+}
+.size:hover { color: var(--text); border-color: var(--muted); }
+.size[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 60%, transparent), inset 0 0 6px color-mix(in srgb, var(--accent) 40%, transparent); }
+.size:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.card .neon { --c: var(--accent); width: 100%; margin-top: auto; }
+.empty { grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 48px 0; font-family: var(--font-mono); }
+
+/* perks */
+.perks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 18px; padding-bottom: 64px; }
+.perk { border-left: 2px solid var(--violet); padding: 4px 0 4px 16px; }
+.perk b { font-family: var(--font-display); font-size: 14px; font-weight: 600; display: block; margin-bottom: 4px; }
+.perk span { color: var(--muted); font-size: 14px; }
+footer { position: relative; z-index: 1; border-top: 1px solid var(--line); color: var(--muted); font: 12px var(--font-mono); }
+footer .wrap { padding-block: 22px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+/* cart drawer */
+.scrim { position: fixed; inset: 0; z-index: 20; background: #02010acc; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 21; width: min(420px, 100%);
+  display: flex; flex-direction: column;
+  background: #0a0820f2; border-left: 1px solid var(--cyan); box-shadow: -10px 0 50px #22f0ff33;
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) max(20px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 18px) 20px;
+  transform: translateX(105%); transition: transform .35s cubic-bezier(.2,.8,.2,1);
+}
+.drawer.open { transform: none; }
+.drawer header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.drawer h3 { font-family: var(--font-display); font-size: 18px; margin: 0; }
+.items { flex: 1; overflow-y: auto; display: grid; align-content: start; gap: 14px; padding-block: 16px; }
+.line { display: grid; grid-template-columns: 64px 1fr auto; gap: 12px; align-items: center; }
+.thumb { width: 64px; height: 64px; border-radius: 12px; display: grid; place-items: center; border: 1px solid var(--line); background: radial-gradient(circle, color-mix(in srgb, var(--accent) 25%, transparent), transparent 70%); }
+.thumb svg { width: 44px; filter: drop-shadow(0 0 5px var(--accent)); }
+.line .meta { min-width: 0; }
+.line .meta b { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.line .meta small { color: var(--muted); font: 12px var(--font-mono); }
+.qty { display: flex; align-items: center; gap: 8px; font: 600 13px var(--font-mono); }
+.qty .neon.round { width: 26px; height: 26px; font-size: 14px; }
+.summary { border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 8px; font-family: var(--font-mono); font-size: 13px; }
+.summary .row { display: flex; justify-content: space-between; }
+.summary .total { font-size: 18px; font-weight: 600; color: var(--cyan); text-shadow: 0 0 8px #22f0ff88; }
+.summary .neon { margin-top: 8px; }
+form.checkout { display: grid; gap: 12px; padding-block: 16px; }
+form.checkout label { display: grid; gap: 4px; font: 12px var(--font-mono); color: var(--muted); letter-spacing: .06em; }
+form.checkout input, form.checkout select {
+  background: #05040f; border: 1px solid var(--line); color: var(--text); border-radius: 10px; padding: 10px 12px;
+  font: 500 15px var(--font-body); outline: none;
+}
+form.checkout input:focus, form.checkout select:focus { border-color: var(--magenta); box-shadow: 0 0 12px #ff3df255; }
+.done { text-align: center; padding: 40px 8px; display: grid; gap: 12px; justify-items: center; }
+.done h4 { font-family: var(--font-display); font-size: 20px; margin: 0; color: var(--cyan); text-shadow: 0 0 12px var(--cyan); }
+.done p { margin: 0; color: var(--muted); }
+.note { font: 11px var(--font-mono); color: var(--muted); }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); z-index: 30; translate: -50% 0;
+  background: #0a0820; color: var(--text); border: 1px solid var(--magenta); border-radius: 12px; padding: 10px 16px;
+  font: 500 14px var(--font-body); box-shadow: 0 0 24px #ff3df266; max-width: calc(100% - 32px);
+  transition: opacity .25s, translate .25s; opacity: 0; pointer-events: none;
+}
+.toast.show { opacity: 1; translate: -50% -6px; }
+
+@media (max-width: 640px) {
+  nav.menu { display: none; }
+  .search { flex: 1 1 100%; order: 3; }
+  .hero { padding-block: 44px 36px; }
+  .moon { width: 70vmin; top: -14vmin; right: -22vmin; opacity: .6; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .rocket { display: none; }
+}
+</style>
+</head>
+<body>
+<canvas id="stars" aria-hidden="true"></canvas>
+<div class="sky" aria-hidden="true">
+  <div class="moon"></div>
+  <svg class="rocket r1" viewBox="0 0 40 90"><use href="#rocket"></use></svg>
+  <svg class="rocket r2" viewBox="0 0 40 90"><use href="#rocket"></use></svg>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="rocket" viewBox="0 0 40 90">
+      <path d="M20 2 C31 14 33 34 31 58 L9 58 C7 34 9 14 20 2Z" fill="#e9e7ff" stroke="#22f0ff" stroke-width="1.5"></path>
+      <circle cx="20" cy="28" r="6" fill="#05040f" stroke="#22f0ff" stroke-width="2"></circle>
+      <path d="M9 44 L1 62 L9 58Z M31 44 L39 62 L31 58Z" fill="#ff3df2"></path>
+      <g class="flame"><path d="M12 60 Q20 92 28 60Z" fill="#ffb547"></path><path d="M16 60 Q20 78 24 60Z" fill="#fff4d6"></path></g>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#catalog" aria-label="ORBITA — к каталогу">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="6" fill="#ff3df2"></circle><ellipse cx="14" cy="14" rx="13" ry="5" stroke="#22f0ff" stroke-width="1.6" transform="rotate(-25 14 14)"></ellipse></svg>
+      <b style="font-weight:inherit">ORBI<span>TA</span></b>
+    </a>
+    <nav class="menu" aria-label="Разделы">
+      <a class="neon sm violet" href="#catalog">Каталог</a>
+      <a class="neon sm violet" href="#drop">Дроп</a>
+      <a class="neon sm violet" href="#delivery">Доставка</a>
+    </nav>
+    <label class="search">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5"></circle><path d="M11 11l4 4"></path></svg>
+      <input id="q" type="search" placeholder="Поиск по каталогу" aria-label="Поиск по каталогу">
+    </label>
+    <button class="neon pink cart-btn" id="openCart" aria-label="Открыть корзину">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h2l2.4 11h11L21 7H6.2"></path><circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle></svg>
+      Корзина <span class="cart-count" id="count">0</span>
+    </button>
+  </div>
+</header>
+
+<main>
+  <section class="wrap hero" id="drop">
+    <div class="eyebrow">Коллекция «Лунная база» · сезон 2026/27</div>
+    <h1>Одежда для <em>невесомости</em> и города</h1>
+    <p>Мембрана 3L, светоотражающие швы, термоподкладка на −25 °C. Шьём небольшими сериями и отправляем со склада в течение суток.</p>
+    <div class="actions">
+      <a class="neon lg" href="#catalog">Смотреть каталог</a>
+      <button class="neon lg pink" id="dropBtn">Купить дроп −20%</button>
+    </div>
+    <div class="telemetry" aria-label="Статус коллекции">
+      <div class="countdown">До старта дропа<b id="timer">T−00:00:00</b></div>
+      <div>Моделей<b>8</b></div>
+      <div>Размеры<b>XS–XXL</b></div>
+    </div>
+  </section>
+
+  <section class="wrap" id="catalog">
+    <div class="bar">
+      <h2>Каталог</h2>
+      <div class="filters" role="group" aria-label="Категории" id="filters"></div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="wrap perks" id="delivery" aria-label="Условия">
+    <div class="perk"><b>Доставка 2–5 дней</b><span>По всей Земле, бесплатно от 10 000 ₽</span></div>
+    <div class="perk"><b>Примерка перед оплатой</b><span>Курьер ждёт 15 минут, пока вы решаете</span></div>
+    <div class="perk"><b>Возврат 30 дней</b><span>Без вопросов, если сохранены бирки</span></div>
+    <div class="perk"><b>Тест в барокамере</b><span>Каждая куртка проходит проверку швов на 20 000 мм</span></div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap"><span>© 2026 ORBITA wear</span><span>Демо-витрина: оплата не подключена</span></div>
+</footer>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" aria-label="Корзина" aria-hidden="true">
+  <header>
+    <h3 id="drawerTitle">Корзина</h3>
+    <button class="neon round pink" id="closeCart" aria-label="Закрыть корзину">✕</button>
+  </header>
+  <div id="drawerBody" style="display:contents"></div>
+</aside>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const ICONS = {
+  jacket: '<path d="M68 42 L40 56 L24 150 L46 154 L58 96 L58 172 L142 172 L142 96 L154 154 L176 150 L160 56 L132 42 L118 52 L100 58 L82 52Z" /><path d="M100 58 V172 M82 52 L100 80 L118 52 M70 120 h18 M112 120 h18" fill="none"/>',
+  hoodie: '<path d="M66 50 L40 62 L26 150 L46 154 L58 98 L58 170 L142 170 L142 98 L154 154 L174 150 L160 62 L134 50 Q100 72 66 50Z" /><path d="M72 54 Q100 6 128 54 M92 64 v22 M108 64 v22 M74 128 h52 v26 h-52Z" fill="none"/>',
+  tee: '<path d="M70 40 L44 50 L24 80 L46 94 L58 82 L58 168 L142 168 L142 82 L154 94 L176 80 L156 50 L130 40 Q100 62 70 40Z" /><path d="M78 96 L100 82 L122 96 L100 110Z" fill="none"/>',
+  pants: '<path d="M64 28 L136 28 L148 174 L112 174 L100 82 L88 174 L52 174Z" /><path d="M64 44 H136 M78 44 V64 Q86 70 96 62 M122 44 V64 Q114 70 104 62" fill="none"/>',
+  sneakers: '<path d="M26 130 Q30 96 58 92 L92 102 Q118 76 140 104 L170 116 Q182 136 166 144 L34 144 Q24 142 26 130Z" /><path d="M28 132 H178 M98 100 l8 12 M110 94 l8 12 M122 92 l6 12" fill="none"/>',
+  cap: '<path d="M48 122 Q48 60 100 60 Q152 60 152 122Z" /><path d="M48 122 Q104 110 180 128 Q156 142 48 128Z M100 60 V122 M72 70 Q84 96 82 120" fill="none"/><circle cx="100" cy="58" r="5"/>'
+};
+const svg = (type, accent) =>
+  `<svg viewBox="0 0 200 200" aria-hidden="true" fill="#0d0b22" stroke="${accent}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">${ICONS[type]}</svg>`;
+
+const PRODUCTS = [
+  { id: 'apogee', name: 'Куртка «Апогей»', type: 'jacket', cat: 'Верх', price: 12900, accent: '#22f0ff', badge: 'NEW', spec: 'мембрана 3L · −25 °C', sizes: ['S','M','L','XL'] },
+  { id: 'perigee', name: 'Худи «Перигей»', type: 'hoodie', cat: 'Верх', price: 6490, old: 8090, accent: '#ff3df2', badge: '−20%', spec: 'футер 380 г/м² · рефлектив', sizes: ['XS','S','M','L','XL','XXL'] },
+  { id: 'regolith', name: 'Футболка «Реголит»', type: 'tee', cat: 'Футболки', price: 2990, accent: '#8b5cff', badge: 'ХИТ', spec: 'хлопок 240 г/м²', sizes: ['XS','S','M','L','XL'] },
+  { id: 'tranquility', name: 'Карго «Море Спокойствия»', type: 'pants', cat: 'Низ', price: 7990, accent: '#ffb547', spec: 'рипстоп · 8 карманов', sizes: ['S','M','L','XL'] },
+  { id: 'window', name: 'Кроссовки «Стартовое окно»', type: 'sneakers', cat: 'Обувь', price: 14500, accent: '#22f0ff', badge: 'NEW', spec: 'подошва с LED-кантом', sizes: ['39','40','41','42','43','44'] },
+  { id: 'signal', name: 'Кепка «Сигнал»', type: 'cap', cat: 'Аксессуары', price: 2490, accent: '#ff3df2', spec: 'неопрен · светится в УФ', sizes: ['ONE'] },
+  { id: 'voskhod', name: 'Бомбер «Восход»', type: 'jacket', cat: 'Верх', price: 8720, old: 10900, accent: '#ffb547', badge: '−20%', spec: 'нейлон MA-1 · оранж. подклад', sizes: ['S','M','L','XL','XXL'] },
+  { id: 'zero-g', name: 'Свитшот «Невесомость»', type: 'hoodie', cat: 'Верх', price: 5490, accent: '#8b5cff', spec: 'двухнитка · вышивка орбиты', sizes: ['XS','S','M','L'] }
+];
+const CATS = ['Все', ...new Set(PRODUCTS.map(p => p.cat)), 'Скидки'];
+const rub = n => n.toLocaleString('ru-RU') + ' ₽';
+const byId = id => PRODUCTS.find(p => p.id === id);
+
+const state = { cat: 'Все', q: '', sizes: {}, view: 'cart', cart: [] };
+try { state.cart = JSON.parse(localStorage.getItem('orbita-cart') || '[]').filter(l => byId(l.id)); } catch (e) {}
+const save = () => { try { localStorage.setItem('orbita-cart', JSON.stringify(state.cart)); } catch (e) {} };
+
+const $ = s => document.querySelector(s);
+const grid = $('#grid'), filters = $('#filters');
+
+function renderFilters() {
+  filters.innerHTML = CATS.map(c =>
+    `<button class="neon sm ${c === 'Все' ? '' : c === 'Скидки' ? 'pink' : 'violet'}" aria-pressed="${c === state.cat}" data-cat="${c}">${c}</button>`).join('');
+}
+function renderGrid() {
+  const q = state.q.trim().toLowerCase();
+  const list = PRODUCTS.filter(p => (state.cat === 'Все' || p.cat === state.cat || (state.cat === 'Скидки' && p.old)) &&
+    (!q || (p.name + ' ' + p.spec + ' ' + p.cat).toLowerCase().includes(q)));
+  grid.innerHTML = list.length ? list.map(p => {
+    const sel = state.sizes[p.id] || p.sizes[Math.min(1, p.sizes.length - 1)];
+    return `<article class="card" style="--accent:${p.accent}">
+      <div class="stage">${p.badge ? `<span class="badge">${p.badge}</span>` : ''}${svg(p.type, p.accent)}</div>
+      <div class="info">
+        <div class="row"><h3 class="name">${p.name}</h3></div>
+        <div class="row"><p class="spec">${p.spec}</p><span class="price">${p.old ? `<s>${rub(p.old)}</s>` : ''}${rub(p.price)}</span></div>
+        <div class="sizes" role="group" aria-label="Размер">${p.sizes.map(s =>
+          `<button class="size" data-id="${p.id}" data-size="${s}" aria-pressed="${s === sel}">${s}</button>`).join('')}</div>
+        <button class="neon" data-add="${p.id}">В корзину</button>
+      </div></article>`;
+  }).join('') : `<div class="empty">Ничего не найдено на этой орбите. Попробуйте другой запрос.</div>`;
+}
+
+function count() { return state.cart.reduce((s, l) => s + l.qty, 0); }
+function subtotal() { return state.cart.reduce((s, l) => s + byId(l.id).price * l.qty, 0); }
+function renderCount() { $('#count').textContent = count(); }
+
+function addToCart(id) {
+  const p = byId(id);
+  const size = state.sizes[id] || p.sizes[Math.min(1, p.sizes.length - 1)];
+  const line = state.cart.find(l => l.id === id && l.size === size);
+  line ? line.qty++ : state.cart.push({ id, size, qty: 1 });
+  save(); renderCount(); renderDrawer();
+  toast(`${p.name}, ${size} — в корзине`);
+}
+
+function renderDrawer() {
+  const body = $('#drawerBody');
+  if (state.view === 'done') {
+    $('#drawerTitle').textContent = 'Заказ оформлен';
+    body.innerHTML = `<div class="done">
+      <svg viewBox="0 0 40 90" width="48" style="filter:drop-shadow(0 0 10px #22f0ff)"><use href="#rocket"></use></svg>
+      <h4>Заказ ${state.orderNo} принят</h4>
+      <p>Это демо-витрина: оплата и доставка не подключены, данные никуда не отправлены.</p>
+      <button class="neon" id="again">Вернуться к покупкам</button></div>`;
+    return;
+  }
+  if (!state.cart.length) {
+    $('#drawerTitle').textContent = 'Корзина';
+    body.innerHTML = `<div class="done"><svg viewBox="0 0 40 90" width="40" style="filter:drop-shadow(0 0 10px #ff3df2)"><use href="#rocket"></use></svg>
+      <h4 style="color:var(--magenta);text-shadow:0 0 12px var(--magenta)">Корзина пуста</h4>
+      <p>Выберите размер в карточке товара и нажмите «В корзину».</p></div>`;
+    return;
+  }
+  const sub = subtotal(), ship = sub >= 10000 ? 0 : 490;
+  const summary = `<div class="summary">
+      <div class="row"><span>Товары (${count()})</span><span>${rub(sub)}</span></div>
+      <div class="row"><span>Доставка</span><span>${ship ? rub(ship) : 'бесплатно'}</span></div>
+      <div class="row total"><span>Итого</span><span>${rub(sub + ship)}</span></div>`;
+  if (state.view === 'checkout') {
+    $('#drawerTitle').textContent = 'Оформление';
+    body.innerHTML = `<form class="checkout items" id="checkout">
+        <label>Имя<input id="f-name" required autocomplete="name" value=""></label>
+        <label>Телефон<input id="f-phone" required type="tel" autocomplete="tel" placeholder="+7 900 000-00-00"></label>
+        <label>Адрес<input id="f-addr" required autocomplete="street-address" placeholder="Город, улица, дом"></label>
+        <label>Способ доставки<select id="f-ship"><option>Курьер · 2–3 дня</option><option>Пункт выдачи · 3–5 дней</option><option>Экспресс · завтра</option></select></label>
+        <span class="note">Демо: форма не отправляет данные.</span>
+      </form>${summary}
+      <button class="neon lg" type="submit" form="checkout">Подтвердить заказ</button>
+      <button class="neon sm violet" id="back">Назад в корзину</button></div>`;
+    return;
+  }
+  $('#drawerTitle').textContent = 'Корзина';
+  body.innerHTML = `<div class="items">${state.cart.map((l, i) => {
+      const p = byId(l.id);
+      return `<div class="line" style="--accent:${p.accent}">
+        <div class="thumb">${svg(p.type, p.accent)}</div>
+        <div class="meta"><b>${p.name}</b><small>Размер ${l.size} · ${rub(p.price)}</small></div>
+        <div class="qty"><button class="neon round violet" data-dec="${i}" aria-label="Меньше">−</button>${l.qty}<button class="neon round" data-inc="${i}" aria-label="Больше">+</button></div>
+      </div>`; }).join('')}</div>
+    ${summary}<button class="neon lg pink" id="toCheckout">Оформить заказ</button></div>`;
+}
+
+const drawer = $('#drawer'), scrim = $('#scrim');
+function openCart() { drawer.classList.add('open'); drawer.setAttribute('aria-hidden', 'false'); scrim.hidden = false; renderDrawer(); }
+function closeCart() {
+  drawer.classList.remove('open'); drawer.setAttribute('aria-hidden', 'true'); scrim.hidden = true;
+  if (state.view === 'done') state.view = 'cart';
+}
+
+let tt;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('button, a'); if (!t) return;
+  if (t.dataset.cat) { state.cat = t.dataset.cat; renderFilters(); renderGrid(); }
+  else if (t.dataset.size) { state.sizes[t.dataset.id] = t.dataset.size; renderGrid(); }
+  else if (t.dataset.add) addToCart(t.dataset.add);
+  else if (t.dataset.inc) { state.cart[+t.dataset.inc].qty++; save(); renderCount(); renderDrawer(); }
+  else if (t.dataset.dec) { const l = state.cart[+t.dataset.dec]; if (--l.qty <= 0) state.cart.splice(+t.dataset.dec, 1); save(); renderCount(); renderDrawer(); }
+  else if (t.id === 'openCart') openCart();
+  else if (t.id === 'closeCart') closeCart();
+  else if (t.id === 'toCheckout') { state.view = 'checkout'; renderDrawer(); }
+  else if (t.id === 'back') { state.view = 'cart'; renderDrawer(); }
+  else if (t.id === 'again') { closeCart(); }
+  else if (t.id === 'dropBtn') { state.cat = 'Скидки'; state.q = ''; $('#q').value = ''; renderFilters(); renderGrid(); $('#catalog').scrollIntoView({ behavior: 'smooth' }); }
+});
+scrim.addEventListener('click', closeCart);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && drawer.classList.contains('open')) closeCart(); });
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'checkout') return;
+  e.preventDefault();
+  state.orderNo = 'ORB-' + Math.floor(1000 + Math.random() * 9000);
+  state.cart = []; save(); renderCount(); state.view = 'done'; renderDrawer();
+});
+$('#q').addEventListener('input', e => { state.q = e.target.value; renderGrid(); });
+
+// обратный отсчёт до следующего дропа (каждую пятницу 20:00)
+function tick() {
+  const now = new Date(), next = new Date(now);
+  next.setHours(20, 0, 0, 0);
+  next.setDate(now.getDate() + ((5 - now.getDay() + 7) % 7));
+  if (next <= now) next.setDate(next.getDate() + 7);
+  let s = Math.floor((next - now) / 1000);
+  const d = Math.floor(s / 86400); s %= 86400;
+  const pad = n => String(n).padStart(2, '0');
+  $('#timer').textContent = `T−${d}д ${pad(Math.floor(s / 3600))}:${pad(Math.floor(s % 3600 / 60))}:${pad(s % 60)}`;
+}
+tick(); setInterval(tick, 1000);
+
+// звёздное небо
+(() => {
+  const c = $('#stars'), ctx = c.getContext('2d');
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let stars = [], w, h;
+  function size() {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    w = c.width = innerWidth * dpr; h = c.height = innerHeight * dpr;
+    stars = Array.from({ length: Math.round(innerWidth * innerHeight / 3500) }, () => ({
+      x: Math.random() * w, y: Math.random() * h, r: (Math.random() * 1.2 + .2) * dpr,
+      p: Math.random() * 6.28, s: Math.random() * .02 + .004, hue: Math.random() < .15 ? (Math.random() < .5 ? 185 : 300) : 250
+    }));
+  }
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    for (const st of stars) {
+      st.p += st.s;
+      ctx.globalAlpha = .35 + .65 * Math.abs(Math.sin(st.p));
+      ctx.fillStyle = `hsl(${st.hue} 100% 85%)`;
+      ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, 6.28); ctx.fill();
+    }
+    if (!still) requestAnimationFrame(draw);
+  }
+  size(); draw(); addEventListener('resize', () => { size(); if (still) draw(); });
+})();
+
+renderFilters(); renderGrid(); renderCount(); renderDrawer();
+</script>
+</body>
+</html>
